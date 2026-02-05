@@ -15,9 +15,80 @@ export const maxDuration = 30;
 export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
 
-  const result = streamText({
-    model: openai("google/gemini-3-flash-preview"),
-    system: `Eres un asistente experto en criptomonedas. Tu trabajo es ayudar a los usuarios a obtener información sobre criptomonedas usando datos reales de Coingecko.
+  // Debug: Ver qué mensajes llegan
+  console.log("=== DEBUG: Mensajes recibidos ===");
+  console.log("Total mensajes:", messages.length);
+  messages.forEach((msg, i) => {
+    console.log(`[${i}] role: ${msg.role}, id: ${msg.id}`);
+    if ("parts" in msg && msg.parts) {
+      console.log(`    parts:`, JSON.stringify(msg.parts)?.substring(0, 500));
+    }
+    // Log raw message
+    console.log(`    raw:`, JSON.stringify(msg)?.substring(0, 500));
+  });
+
+  // Convertir mensajes
+  const convertedMessages = await convertToModelMessages(messages);
+
+  // Detectar si hay tool-results en el historial (causan problemas con Gemini via gateway)
+  const hasToolResults = convertedMessages.some((msg) => msg.role === "tool");
+
+  let finalMessages: typeof convertedMessages;
+
+  if (hasToolResults) {
+    // Si hay tools en el historial, solo enviar el último mensaje del usuario
+    // para evitar incompatibilidades con el formato de tool-results
+    const lastUserMsg = [...convertedMessages]
+      .reverse()
+      .find((m) => m.role === "user");
+    finalMessages = lastUserMsg ? [lastUserMsg] : convertedMessages;
+    console.log("=== Simplificando historial (tiene tool-results) ===");
+  } else {
+    // Sin tools, fusionar users consecutivos si los hay
+    finalMessages = [];
+    for (const msg of convertedMessages) {
+      const lastAdded = finalMessages[finalMessages.length - 1];
+
+      if (msg.role === "user" && lastAdded?.role === "user") {
+        const getTexts = (content: unknown): string[] => {
+          if (Array.isArray(content)) {
+            return content
+              .filter(
+                (c): c is { type: "text"; text: string } =>
+                  typeof c === "object" &&
+                  c !== null &&
+                  (c as Record<string, unknown>).type === "text",
+              )
+              .map((c) => c.text);
+          }
+          return [String(content)];
+        };
+
+        const combinedText = [
+          ...getTexts(lastAdded.content),
+          ...getTexts(msg.content),
+        ].join("\n\n");
+        lastAdded.content = [{ type: "text" as const, text: combinedText }];
+        continue;
+      }
+
+      finalMessages.push(msg);
+    }
+  }
+
+  console.log("=== DEBUG: Mensajes finales ===");
+  console.log(
+    `Original: ${convertedMessages.length}, Final: ${finalMessages.length}`,
+  );
+  finalMessages.forEach((m, i) => {
+    const preview = JSON.stringify(m.content)?.substring(0, 200);
+    console.log(`[${i}] ${m.role}: ${preview}`);
+  });
+
+  try {
+    const result = streamText({
+      model: openai("google/gemini-3-flash-preview"),
+      system: `Eres un asistente experto en criptomonedas. Tu trabajo es ayudar a los usuarios a obtener información sobre criptomonedas usando datos reales de Coingecko.
 
 REGLAS IMPORTANTES:
 1. NUNCA inventes precios o datos de criptomonedas. SIEMPRE usa las tools disponibles para obtener datos reales.
@@ -27,85 +98,97 @@ REGLAS IMPORTANTES:
 5. Puedes responder preguntas generales sobre criptomonedas sin usar tools (conceptos, qué es blockchain, etc.)
 6. Siempre indica que los datos provienen de Coingecko cuando muestres precios.
 7. Sé conciso en tus respuestas.`,
-    messages: await convertToModelMessages(messages),
-    tools: {
-      getTop10Cryptos: tool({
-        description:
-          "Obtiene la lista de las 10 criptomonedas con mayor capitalización de mercado (market cap). Incluye nombre, símbolo, precio, market cap, variación 24h e imagen. No requiere parámetros.",
-        // Acepta objeto vacío o null/undefined que el modelo pueda enviar
-        inputSchema: z.object({}).optional().nullable(),
-        execute: async () => {
-          try {
-            const cryptos = await getTop10Cryptos();
-            return {
-              success: true,
-              data: cryptos,
-              source: "coingecko" as const,
-              timestamp: new Date().toISOString(),
-            };
-          } catch (error) {
-            return {
-              success: false,
-              error:
-                error instanceof Error ? error.message : "Error desconocido",
-              source: "coingecko" as const,
-              timestamp: new Date().toISOString(),
-            };
-          }
-        },
-      }),
-      getCryptoByQuery: tool({
-        description:
-          "Busca y obtiene información detallada de una criptomoneda específica. Acepta el nombre (bitcoin, ethereum), símbolo (btc, eth) o ID de la cripto.",
-        inputSchema: z.object({
-          query: z
-            .string()
-            .describe(
-              'El nombre, símbolo o ID de la criptomoneda a buscar. Ejemplos: "bitcoin", "btc", "ethereum", "eth", "solana", "sol"',
-            ),
+      messages: finalMessages,
+      tools: {
+        getTop10Cryptos: tool({
+          description:
+            "Obtiene la lista de las 10 criptomonedas con mayor capitalización de mercado (market cap). Incluye nombre, símbolo, precio, market cap, variación 24h e imagen. No requiere parámetros.",
+          inputSchema: z.object({}),
+          execute: async () => {
+            try {
+              const cryptos = await getTop10Cryptos();
+              return {
+                success: true,
+                data: cryptos,
+                source: "coingecko" as const,
+                timestamp: new Date().toISOString(),
+              };
+            } catch (error) {
+              console.error("Error en getTop10Cryptos:", error);
+              return {
+                success: false,
+                error:
+                  error instanceof Error ? error.message : "Error desconocido",
+                source: "coingecko" as const,
+                timestamp: new Date().toISOString(),
+              };
+            }
+          },
         }),
-        execute: async ({ query }) => {
-          try {
-            const result = await getCryptoByQuery(query);
+        getCryptoByQuery: tool({
+          description:
+            "Busca y obtiene información detallada de una criptomoneda específica. Acepta el nombre (bitcoin, ethereum), símbolo (btc, eth) o ID de la cripto.",
+          inputSchema: z.object({
+            query: z
+              .string()
+              .describe(
+                'Nombre, símbolo o ID de la criptomoneda. Ej: "bitcoin", "btc", "ethereum".',
+              ),
+          }),
+          execute: async ({ query }) => {
+            console.log("Ejecutando getCryptoByQuery:", query);
+            try {
+              const result = await getCryptoByQuery(query);
 
-            if (result.notFound) {
+              if (result.notFound) {
+                return {
+                  success: false,
+                  error: `No encontré ninguna criptomoneda que coincida con "${query}". Intenta con otro nombre o símbolo.`,
+                  source: "coingecko" as const,
+                  timestamp: new Date().toISOString(),
+                };
+              }
+
+              if (result.suggestions) {
+                return {
+                  success: false,
+                  suggestions: result.suggestions,
+                  error: `Encontré varias criptomonedas que podrían coincidir con "${query}". ¿Cuál de estas buscas?`,
+                  source: "coingecko" as const,
+                  timestamp: new Date().toISOString(),
+                };
+              }
+
+              return {
+                success: true,
+                data: result.crypto,
+                source: "coingecko" as const,
+                timestamp: new Date().toISOString(),
+              };
+            } catch (error) {
               return {
                 success: false,
-                error: `No encontré ninguna criptomoneda que coincida con "${query}". Intenta con otro nombre o símbolo.`,
+                error:
+                  error instanceof Error ? error.message : "Error desconocido",
                 source: "coingecko" as const,
                 timestamp: new Date().toISOString(),
               };
             }
+          },
+        }),
+      },
+    });
 
-            if (result.suggestions) {
-              return {
-                success: false,
-                suggestions: result.suggestions,
-                error: `Encontré varias criptomonedas que podrían coincidir con "${query}". ¿Cuál de estas buscas?`,
-                source: "coingecko" as const,
-                timestamp: new Date().toISOString(),
-              };
-            }
-
-            return {
-              success: true,
-              data: result.crypto,
-              source: "coingecko" as const,
-              timestamp: new Date().toISOString(),
-            };
-          } catch (error) {
-            return {
-              success: false,
-              error:
-                error instanceof Error ? error.message : "Error desconocido",
-              source: "coingecko" as const,
-              timestamp: new Date().toISOString(),
-            };
-          }
-        },
-      }),
-    },
-  });
-
-  return result.toUIMessageStreamResponse();
+    return result.toUIMessageStreamResponse();
+  } catch (error) {
+    console.error("=== DEBUG: Error en streamText ===");
+    if (error && typeof error === "object") {
+      const err = error as Record<string, unknown>;
+      console.error("Status:", err.statusCode);
+      console.error("Response body:", err.responseBody);
+      console.error("=== REQUEST BODY COMPLETO ===");
+      console.error(JSON.stringify(err.requestBodyValues, null, 2));
+    }
+    throw error;
+  }
 }
