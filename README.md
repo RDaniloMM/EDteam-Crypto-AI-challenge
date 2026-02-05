@@ -37,7 +37,7 @@ Una aplicación de chat impulsada por IA que permite consultar información en t
 1. Clona el repositorio:
 
 ```bash
-git clone <repo-url>
+git clone https://github.com/RDaniloMM/EDteam-Crypto-AI-challenge
 cd edteam-crypto-ai-challenge
 ```
 
@@ -53,6 +53,7 @@ npm install
 # Requeridas
 AI_GATEWAY_API_KEY=tu_api_key_de_vercel_ai_gateway
 COINGECKO_API_KEY=tu_api_key_de_coingecko
+COINGECKO_BASE_URL=https://api.coingecko.com/api/v3
 
 # Upstash Redis (opcional - para persistencia del historial)
 UPSTASH_REDIS_REST_URL=tu_url_de_upstash
@@ -86,8 +87,6 @@ Puedes preguntarle al chat cosas como:
 - "Dame info de Ethereum"
 - "Precio de SOL"
 - "Dame las memecoins más importantes"
-- "Criptos de DeFi"
-- "Precio de binance" (mostrará sugerencias: BNB, BUSD, etc.)
 
 ## 📁 Estructura del Proyecto
 
@@ -205,15 +204,8 @@ Recuerda configurar las variables de entorno en tu plataforma de hosting:
 - **`getCryptoByIdFast`**: Usa `/coins/markets?ids=X` en lugar de `/coins/{id}` (más rápido)
 - **Detección de ambigüedad**: Filtra solo criptos con market_cap_rank ≤ 500 para evitar ruido
 
-### Evitar Waterfalls
 
-- Las búsquedas intentan primero con **aliases conocidos** (0 llamadas adicionales)
-- Luego con **ID directo** (1 llamada)
-- Solo si falla, usa **búsqueda** + **fetch de datos** (2 llamadas)
-
----
-
-## 🤖 Uso de IA para Programar
+## Uso de IA para Programar
 
 ### Herramienta utilizada
 
@@ -221,24 +213,32 @@ Recuerda configurar las variables de entorno en tu plataforma de hosting:
 
 ### Ejemplos de prompts utilizados
 
-1. **Configuración inicial del proyecto:**
 
-   > "Crea una app usando la base actual de Next.js 16 con un chatbot de IA que use la API de CoinGecko usando tools del Vercel AI SDK"
-
-2. **Implementación de tools:**
+- **Implementación de tools:**
 
    > "Implementa una tool getCryptoByQuery que busque criptos por nombre o símbolo y maneje casos de ambigüedad"
 
-3. **Persistencia:**
+- **Persistencia:**
 
    > "Agrega persistencia del historial de chat usando Upstash Redis con TTL de 7 días"
 
-4. **Manejo de categorías:**
+- **Manejo de categorías:**
 
    > "Agrega una tool getCryptosByCategory que obtenga criptos por categoría usando el endpoint de CoinGecko"
 
-5. **Debugging:**
-   > "El modelo devuelve 'Invalid input' cuando hay tool-results en el historial, ayúdame a corregirlo"
+- **Debugging:**
+   > "El builder me dio este error de compilación:
+   ⨯ TypeError: Cannot read properties of undefined (reading 'trim')
+    at Chat (app\components\Chat.tsx:119:60)
+  117 |             disabled={isLoading}
+  118 |           />
+> 119 |           <PromptInputSubmit disabled={isLoading || !input.trim()} />
+      |                                                            ^
+  120 |         </PromptInput>
+  121 |       </div>
+  122 |     </div> {
+  digest: '3800306835'
+   "
 
 ### Partes generadas por IA vs. corregidas manualmente
 
