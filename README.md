@@ -223,7 +223,7 @@ Recuerda configurar las variables de entorno en tu plataforma de hosting:
 
 1. **Configuración inicial del proyecto:**
 
-   > "Crea una app Next.js con chat de IA que consulte datos de CoinGecko usando tools del Vercel AI SDK"
+   > "Crea una app usando la base actual de Next.js 16 con un chatbot de IA que use la API de CoinGecko usando tools del Vercel AI SDK"
 
 2. **Implementación de tools:**
 
@@ -238,15 +238,15 @@ Recuerda configurar las variables de entorno en tu plataforma de hosting:
    > "Agrega una tool getCryptosByCategory que obtenga criptos por categoría usando el endpoint de CoinGecko"
 
 5. **Debugging:**
-   > "El modelo Gemini devuelve 'Invalid input' cuando hay tool-results en el historial, ayúdame a debuguear"
+   > "El modelo devuelve 'Invalid input' cuando hay tool-results en el historial, ayúdame a corregirlo"
 
 ### Partes generadas por IA vs. corregidas manualmente
 
 | Componente                              | Generado por IA | Corregido/Ajustado manualmente                                                                       |
 | --------------------------------------- | --------------- | ---------------------------------------------------------------------------------------------------- |
 | Estructura base del proyecto            | ✅              | -                                                                                                    |
-| Componentes UI (Chat, CryptoCard, etc.) | ✅              | Estilos menores                                                                                      |
-| API routes y tools                      | ✅              | -                                                                                                    |
+| Componentes UI (Chat, CryptoCard, etc.) | ✅              | Estilos y detalles importantes para mejorar la UX |
+| API routes y tools                      | ✅              | Ajustes manuales con la documentación de Zod y AI SDK, que la IA se equivoca colocando código deprecado -                                                                                                    |
 | **Lógica de `coingecko.ts`**            | ✅ Base         | ✅ **Tiempos de `revalidate`**, **lógica de ambigüedad** (detección de múltiples matches relevantes) |
 | Persistencia Redis                      | ✅              | -                                                                                                    |
 | Manejo de errores de Gemini             | ✅ Workaround   | -                                                                                                    |
@@ -255,12 +255,12 @@ Recuerda configurar las variables de entorno en tu plataforma de hosting:
 ### Criterio de validación
 
 - **Revisión de lógica de negocio**: Especialmente en `getCryptoByQuery` para asegurar que la detección de ambigüedad funcione correctamente
-- **Testing manual**: Probé casos edge como "binance" (debe mostrar sugerencias), "bnb" (debe devolver BNB directo)
+- **Testing manual**: Probé casos especiales como "binance"
 - **Ajuste de cache**: Modifiqué los tiempos de `revalidate` según el tipo de dato y frecuencia de cambio esperada
 
 ---
 
-## 🔒 Verificación contra Alucinaciones
+## Verificación contra Alucinaciones
 
 ### Problema
 

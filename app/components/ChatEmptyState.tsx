@@ -21,7 +21,7 @@ export function ChatEmptyState({ onSuggestionClick }: ChatEmptyStateProps) {
         />
       }
       title='Asistente Crypto'
-      description='Pregúntame sobre criptomonedas. Puedo mostrarte el top 10 por market cap o darte información detallada de cualquier cripto.'
+      description='Pregúntame sobre criptomonedas.'
     >
       <div className='flex flex-col items-center text-center'>
         <Image
@@ -34,8 +34,7 @@ export function ChatEmptyState({ onSuggestionClick }: ChatEmptyStateProps) {
         <div className='space-y-1 mb-6'>
           <h3 className='font-semibold text-lg'>Asistente Crypto</h3>
           <p className='text-muted-foreground text-sm max-w-md'>
-            Pregúntame sobre criptomonedas. Puedo mostrarte el top 10 por market
-            cap o darte información detallada de cualquier cripto.
+            Pregúntame sobre criptomonedas.
           </p>
         </div>
 
