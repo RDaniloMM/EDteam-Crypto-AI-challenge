@@ -5,7 +5,7 @@ import { DefaultChatTransport } from "ai";
 import { useState, useRef, useEffect } from "react";
 import { ChatSidebar } from "./ChatSidebar";
 import { useConversations } from "@/app/hooks/useConversations";
-import { ChatMain } from "./ChatMain";
+import { ChatInterface } from "./ChatInterface";
 
 export function ChatWithHistory() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
@@ -82,7 +82,7 @@ export function ChatWithHistory() {
       <div
         className={`flex-1 flex justify-center transition-all duration-300 ${isSidebarCollapsed ? "md:pl-14" : "md:pl-8"}`}
       >
-        <ChatMain
+        <ChatInterface
           messages={messages}
           sendMessage={sendMessage}
           status={status}

@@ -16,10 +16,10 @@ import { ChatMessage } from "./ChatMessage";
 import { CryptoAutocomplete } from "./CryptoAutocomplete";
 import { ChatEmptyState } from "./ChatEmptyState";
 import { ChatSkeleton } from "./ChatSkeleton";
-import { Message } from "ai";
+import type { UIMessage } from "ai";
 
 interface ChatInterfaceProps {
-  messages: Message[];
+  messages: UIMessage[];
   sendMessage: (args: { text: string }) => void;
   status: string;
   error?: Error | null;
