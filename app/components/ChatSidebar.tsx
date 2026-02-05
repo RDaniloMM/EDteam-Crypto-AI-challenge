@@ -113,7 +113,10 @@ export function ChatSidebar({
               >
                 <div className='w-4 h-4 mt-0.5 bg-muted rounded animate-pulse' />
                 <div className='flex-1 space-y-2'>
-                  <div className='h-4 bg-muted rounded animate-pulse' style={{ width: `${70 - i * 10}%` }} />
+                  <div
+                    className='h-4 bg-muted rounded animate-pulse'
+                    style={{ width: `${70 - i * 10}%` }}
+                  />
                   <div className='h-3 w-16 bg-muted/70 rounded animate-pulse' />
                 </div>
               </div>
