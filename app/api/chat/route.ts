@@ -15,18 +15,6 @@ export const maxDuration = 30;
 export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
 
-  // Debug: Ver qué mensajes llegan
-  console.log("=== DEBUG: Mensajes recibidos ===");
-  console.log("Total mensajes:", messages.length);
-  messages.forEach((msg, i) => {
-    console.log(`[${i}] role: ${msg.role}, id: ${msg.id}`);
-    if ("parts" in msg && msg.parts) {
-      console.log(`    parts:`, JSON.stringify(msg.parts)?.substring(0, 500));
-    }
-    // Log raw message
-    console.log(`    raw:`, JSON.stringify(msg)?.substring(0, 500));
-  });
-
   // Convertir mensajes
   const convertedMessages = await convertToModelMessages(messages);
 
@@ -42,7 +30,6 @@ export async function POST(req: Request) {
       .reverse()
       .find((m) => m.role === "user");
     finalMessages = lastUserMsg ? [lastUserMsg] : convertedMessages;
-    console.log("=== Simplificando historial (tiene tool-results) ===");
   } else {
     // Sin tools, fusionar users consecutivos si los hay
     finalMessages = [];
@@ -76,17 +63,7 @@ export async function POST(req: Request) {
     }
   }
 
-  console.log("=== DEBUG: Mensajes finales ===");
-  console.log(
-    `Original: ${convertedMessages.length}, Final: ${finalMessages.length}`,
-  );
-  finalMessages.forEach((m, i) => {
-    const preview = JSON.stringify(m.content)?.substring(0, 200);
-    console.log(`[${i}] ${m.role}: ${preview}`);
-  });
-
-  try {
-    const result = streamText({
+  const result = streamText({
       model: openai("google/gemini-3-flash-preview"),
       system: `Eres un asistente experto en criptomonedas. Tu trabajo es ayudar a los usuarios a obtener información sobre criptomonedas usando datos reales de Coingecko.
 
@@ -136,7 +113,6 @@ REGLAS IMPORTANTES:
               ),
           }),
           execute: async ({ query }) => {
-            console.log("Ejecutando getCryptoByQuery:", query);
             try {
               const result = await getCryptoByQuery(query);
 
@@ -177,18 +153,7 @@ REGLAS IMPORTANTES:
           },
         }),
       },
-    });
+  });
 
-    return result.toUIMessageStreamResponse();
-  } catch (error) {
-    console.error("=== DEBUG: Error en streamText ===");
-    if (error && typeof error === "object") {
-      const err = error as Record<string, unknown>;
-      console.error("Status:", err.statusCode);
-      console.error("Response body:", err.responseBody);
-      console.error("=== REQUEST BODY COMPLETO ===");
-      console.error(JSON.stringify(err.requestBodyValues, null, 2));
-    }
-    throw error;
-  }
+  return result.toUIMessageStreamResponse();
 }

@@ -17,12 +17,10 @@ function buildUrl(
 ): string {
   const url = new URL(`${COINGECKO_BASE_URL}${endpoint}`);
 
-  // Añadir parámetros
   Object.entries(params).forEach(([key, value]) => {
     url.searchParams.append(key, value);
   });
 
-  // Añadir API key
   if (COINGECKO_API_KEY) {
     url.searchParams.append("x_cg_demo_api_key", COINGECKO_API_KEY);
   }

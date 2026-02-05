@@ -106,11 +106,17 @@ export function ChatSidebar({
       <div className='flex-1 overflow-y-auto p-2'>
         {isLoading ? (
           <div className='space-y-2 p-2'>
-            {[...Array(3)].map((_, i) => (
+            {[...Array(5)].map((_, i) => (
               <div
                 key={i}
-                className='h-14 bg-muted/50 rounded-lg animate-pulse'
-              />
+                className='flex items-start gap-3 p-3 rounded-lg'
+              >
+                <div className='w-4 h-4 mt-0.5 bg-muted rounded animate-pulse' />
+                <div className='flex-1 space-y-2'>
+                  <div className='h-4 bg-muted rounded animate-pulse' style={{ width: `${70 - i * 10}%` }} />
+                  <div className='h-3 w-16 bg-muted/70 rounded animate-pulse' />
+                </div>
+              </div>
             ))}
           </div>
         ) : conversations.length === 0 ? (
