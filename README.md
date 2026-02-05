@@ -175,6 +175,7 @@ Recuerda configurar las variables de entorno en tu plataforma de hosting:
 
 - `AI_GATEWAY_API_KEY`
 - `COINGECKO_API_KEY`
+- `COINGECKO_BASE_URL`
 - `UPSTASH_REDIS_REST_URL`
 - `UPSTASH_REDIS_REST_TOKEN`
 
@@ -227,7 +228,7 @@ Recuerda configurar las variables de entorno en tu plataforma de hosting:
    > "Agrega una tool getCryptosByCategory que obtenga criptos por categoría usando el endpoint de CoinGecko"
 
 - **Debugging:**
-   > "El builder me dio este error de compilación:
+   > "El builder me dio este error de compilación, dame sugerencias de como arreglarlo
    ⨯ TypeError: Cannot read properties of undefined (reading 'trim')
     at Chat (app\components\Chat.tsx:119:60)
   117 |             disabled={isLoading}
@@ -238,7 +239,7 @@ Recuerda configurar las variables de entorno en tu plataforma de hosting:
   121 |       </div>
   122 |     </div> {
   digest: '3800306835'
-   "
+  "
 
 ### Partes generadas por IA vs. corregidas manualmente
 

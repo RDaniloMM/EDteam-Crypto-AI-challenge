@@ -7,13 +7,12 @@ import {
   getCryptosByCategory,
 } from "@/app/lib/coingecko";
 
-// Crear cliente OpenAI apuntando al Vercel AI Gateway
 const openai = createOpenAI({
   apiKey: process.env.AI_GATEWAY_API_KEY,
   baseURL: "https://ai-gateway.vercel.sh/v1",
 });
 
-// Permitir respuestas de streaming de hasta 30 segundos
+// duracion maxima de 30 segundos de streaming
 export const maxDuration = 30;
 
 export async function POST(req: Request) {
@@ -71,15 +70,15 @@ export async function POST(req: Request) {
     model: openai("google/gemini-3-flash-preview"),
     system: `Eres un asistente experto en criptomonedas. Tu trabajo es ayudar a los usuarios a obtener información sobre criptomonedas usando datos reales de Coingecko.
 
-REGLAS IMPORTANTES:
-1. NUNCA inventes precios o datos de criptomonedas. SIEMPRE usa las tools disponibles para obtener datos reales.
-2. Si el usuario pregunta por precios, market cap, o cualquier dato de criptos, DEBES usar una tool.
-3. Si el usuario pregunta por el top 10, las más valiosas, o criptos más importantes, usa getTop10Cryptos.
-4. Si el usuario pregunta por una cripto específica (bitcoin, eth, solana, etc.), usa getCryptoByQuery.
-5. Si el usuario pregunta por criptos de una categoría (memes, defi, layer 1, gaming, AI, etc.), usa getCryptosByCategory.
-6. Puedes responder preguntas generales sobre criptomonedas sin usar tools (conceptos, qué es blockchain, etc.)
-7. Siempre indica que los datos provienen de Coingecko cuando muestres precios.
-8. Sé conciso en tus respuestas.`,
+  REGLAS IMPORTANTES:
+  1. NUNCA inventes precios o datos de criptomonedas. SIEMPRE usa las tools disponibles para obtener datos reales.
+  2. Si el usuario pregunta por precios, market cap, o cualquier dato de criptos, DEBES usar una tool.
+  3. Si el usuario pregunta por el top 10, las más valiosas, o criptos más importantes, usa getTop10Cryptos.
+  4. Si el usuario pregunta por una cripto específica (bitcoin, eth, solana, etc.), usa getCryptoByQuery.
+  5. Si el usuario pregunta por criptos de una categoría (memes, defi, layer 1, gaming, AI, etc.), usa getCryptosByCategory.
+  6. Puedes responder preguntas generales sobre criptomonedas sin usar tools (conceptos, qué es blockchain, etc.)
+  7. Siempre indica que los datos provienen de Coingecko cuando muestres precios.
+  8. Sé conciso en tus respuestas.`,
     messages: finalMessages,
     tools: {
       getTop10Cryptos: tool({
