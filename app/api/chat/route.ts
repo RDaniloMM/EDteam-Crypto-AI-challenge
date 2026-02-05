@@ -1,11 +1,12 @@
-import { createGroq } from "@ai-sdk/groq";
+import { createOpenAI } from "@ai-sdk/openai";
 import { streamText, UIMessage, tool, convertToModelMessages } from "ai";
 import { z } from "zod";
 import { getTop10Cryptos, getCryptoByQuery } from "@/app/lib/coingecko";
 
-// Crear cliente de Groq
-const groq = createGroq({
-  apiKey: process.env.GROQ_API_KEY,
+// Crear cliente OpenAI apuntando al Vercel AI Gateway
+const openai = createOpenAI({
+  apiKey: process.env.AI_GATEWAY_API_KEY,
+  baseURL: "https://ai-gateway.vercel.sh/v1",
 });
 
 // Permitir respuestas de streaming de hasta 30 segundos
@@ -15,9 +16,7 @@ export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
 
   const result = streamText({
-    // llama-3.3-70b-versatile es el modelo recomendado para tool use en Groq
-    model: groq("llama-3.3-70b-versatile"),
-    // maxSteps permite que el modelo continúe después de ejecutar una tool
+    model: openai("google/gemini-3-flash-preview"),
     system: `Eres un asistente experto en criptomonedas. Tu trabajo es ayudar a los usuarios a obtener información sobre criptomonedas usando datos reales de Coingecko.
 
 REGLAS IMPORTANTES:

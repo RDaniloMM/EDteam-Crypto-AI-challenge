@@ -51,7 +51,6 @@ export function ChatWithHistory() {
   const isLoading = status === "streaming" || status === "submitted";
   const lastConversationIdRef = useRef<string | null>(null);
 
-  // Restaurar mensajes de la conversación seleccionada (solo cuando cambia la conversación)
   useEffect(() => {
     if (
       !isLoadingConversations &&
@@ -72,7 +71,6 @@ export function ChatWithHistory() {
     setMessages,
   ]);
 
-  // Guardar mensajes cuando cambian (solo si el chat está listo y hay mensajes nuevos)
   useEffect(() => {
     if (!isLoadingConversations && messages.length > 0 && status === "ready") {
       saveMessages(messages);

@@ -87,10 +87,10 @@ export function useConversations() {
           const data = await response.json();
           setConversations(data.conversations || []);
 
-          // Seleccionar la primera conversación si existe
-          if (data.conversations && data.conversations.length > 0) {
-            setCurrentConversationId(data.conversations[0].id);
-          }
+          // Selecciona la primera conversación si existe
+          // if (data.conversations && data.conversations.length > 0) {
+          //   setCurrentConversationId(data.conversations[0].id);
+          // }
         }
       } catch (error) {
         console.error("Error loading conversations:", error);
