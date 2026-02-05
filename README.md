@@ -4,11 +4,13 @@ Una aplicación de chat impulsada por IA que permite consultar información en t
 
 ## 🚀 Características
 
-- **Chat con IA**: Interfaz conversacional usando Groq AI (Llama 3.3 70B)
+- **Chat con IA**: Interfaz conversacional usando Vercel AI Gateway (Google Gemini 3 Flash)
 - **Datos en tiempo real**: Información actualizada de CoinGecko
 - **Tools inteligentes**: La IA decide cuándo consultar:
   - **Top 10 Criptomonedas**: Muestra las 10 criptos con mayor capitalización de mercado
   - **Consulta individual**: Busca información detallada de cualquier criptomoneda
+  - **Búsqueda por categoría**: Filtra criptos por categoría (memes, DeFi, Layer 1, etc.)
+- **Manejo de ambigüedad**: Si hay múltiples criptos que coinciden, muestra sugerencias
 - **UI moderna**: Interfaz construida con TailwindCSS v4 y componentes de ai-elements
 - **Autocomplete**: Búsqueda de criptomonedas con sugerencias en tiempo real
 - **Persistencia en la nube**: Historial de chat guardado en Upstash Redis
@@ -17,7 +19,7 @@ Una aplicación de chat impulsada por IA que permite consultar información en t
 ## 🛠️ Stack Tecnológico
 
 - **Framework**: Next.js 16+ (App Router)
-- **AI**: Vercel AI SDK v6 + Groq
+- **AI**: Vercel AI SDK v6 + Vercel AI Gateway (Google Gemini 3 Flash Preview)
 - **Estilos**: TailwindCSS v4
 - **UI Components**: ai-elements (Vercel)
 - **Base de datos**: Upstash Redis (persistencia de historial)
@@ -26,7 +28,7 @@ Una aplicación de chat impulsada por IA que permite consultar información en t
 ## 📋 Requisitos
 
 - Node.js 18+
-- Cuenta de Groq (para la API key)
+- Cuenta de Vercel AI Gateway (para la API key)
 - Cuenta de CoinGecko (para la API key)
 - Cuenta de Upstash (para Redis - opcional pero recomendado)
 
@@ -49,7 +51,7 @@ npm install
 
 ```env
 # Requeridas
-GROQ_API_KEY=tu_api_key_de_groq
+AI_GATEWAY_API_KEY=tu_api_key_de_vercel_ai_gateway
 COINGECKO_API_KEY=tu_api_key_de_coingecko
 
 # Upstash Redis (opcional - para persistencia del historial)
@@ -83,21 +85,32 @@ Puedes preguntarle al chat cosas como:
 - "¿A cuánto está Bitcoin?"
 - "Dame info de Ethereum"
 - "Precio de SOL"
+- "Dame las memecoins más importantes"
+- "Criptos de DeFi"
+- "Precio de binance" (mostrará sugerencias: BNB, BUSD, etc.)
 
 ## 📁 Estructura del Proyecto
 
 ```
 app/
-├── api/chat/route.ts      # Endpoint de chat con tools
+├── api/
+│   ├── chat/route.ts      # Endpoint de chat con tools
+│   ├── conversations/     # API de conversaciones
+│   ├── history/           # API de historial
+│   └── search/            # API de búsqueda de criptos
 ├── components/
 │   ├── Chat.tsx           # Componente principal del chat
-│   ├── ChatMessage.tsx    # Renderizado de mensajes
+│   ├── ChatMessage.tsx    # Renderizado de mensajes y tools
+│   ├── ChatSidebar.tsx    # Sidebar con historial
 │   ├── CryptoCard.tsx     # Card de cripto individual
-│   ├── CryptoTable.tsx    # Tabla del top 10
+│   ├── CryptoTable.tsx    # Tabla del top 10/categorías
 │   └── SourceBadge.tsx    # Badge de fuente de datos
-├── lib/coingecko.ts       # Cliente de CoinGecko
-├── lib/redis.ts           # Cliente de Upstash Redis
-├── hooks/useChatHistory.ts # Hook de persistencia
+├── lib/
+│   ├── coingecko.ts       # Cliente de CoinGecko (lógica de búsqueda)
+│   └── redis.ts           # Cliente de Upstash Redis
+├── hooks/
+│   ├── useChatHistory.ts  # Hook de persistencia
+│   └── useConversations.ts # Hook de conversaciones
 ├── types/crypto.ts        # Tipos TypeScript
 └── page.tsx               # Página principal
 ```
@@ -121,6 +134,21 @@ Busca información de una cripto específica. Acepta:
 - Nombre: "bitcoin", "ethereum"
 - Símbolo: "btc", "eth", "sol"
 - ID de CoinGecko
+
+**Manejo de ambigüedad**: Si el término buscado coincide con múltiples criptomonedas relevantes (top 500), muestra una lista de sugerencias para que el usuario elija.
+
+### `getCryptosByCategory`
+
+Obtiene las criptomonedas más importantes de una categoría. Categorías disponibles:
+
+- `meme` / `memecoins` - Memecoins
+- `defi` - Finanzas descentralizadas
+- `layer-1` / `l1` - Blockchains Layer 1
+- `layer-2` / `l2` - Soluciones Layer 2
+- `gaming` - Gaming y Play-to-Earn
+- `ai` - Inteligencia Artificial
+- `nft` - Tokens NFT
+- `stablecoins` - Monedas estables
 
 ## 🗄️ Persistencia con Upstash Redis
 
@@ -146,10 +174,132 @@ npm run build
 
 Recuerda configurar las variables de entorno en tu plataforma de hosting:
 
-- `GROQ_API_KEY`
+- `AI_GATEWAY_API_KEY`
 - `COINGECKO_API_KEY`
 - `UPSTASH_REDIS_REST_URL`
 - `UPSTASH_REDIS_REST_TOKEN`
+
+---
+
+## 🏗️ Arquitectura y Decisiones Técnicas
+
+### Consumo de CoinGecko
+
+**Endpoints utilizados:**
+
+- `/coins/markets` - Top 10 y datos de criptos individuales (más rápido que `/coins/{id}`)
+- `/search` - Búsqueda de criptos por nombre/símbolo
+- `/coins/categories/list` - Lista de categorías disponibles
+
+**Estrategia de caché (revalidate):**
+| Endpoint | Cache | Justificación |
+|----------|-------|---------------|
+| `/coins/markets` | 10s | Precios cambian frecuentemente, balance entre frescura y rate limits |
+| `/search` | 60s | Resultados de búsqueda son estables |
+| `/coins/categories/list` | 300s | Las categorías casi nunca cambian |
+| Categorías (markets) | 30s | Datos menos críticos que el top 10 |
+
+**Optimizaciones:**
+
+- **Aliases de símbolos**: Mapeo directo de símbolos comunes (btc→bitcoin) evita llamadas a `/search`
+- **`getCryptoByIdFast`**: Usa `/coins/markets?ids=X` en lugar de `/coins/{id}` (más rápido)
+- **Detección de ambigüedad**: Filtra solo criptos con market_cap_rank ≤ 500 para evitar ruido
+
+### Evitar Waterfalls
+
+- Las búsquedas intentan primero con **aliases conocidos** (0 llamadas adicionales)
+- Luego con **ID directo** (1 llamada)
+- Solo si falla, usa **búsqueda** + **fetch de datos** (2 llamadas)
+
+---
+
+## 🤖 Uso de IA para Programar
+
+### Herramienta utilizada
+
+**GitHub Copilot** (Gemini 3 Pro / Claude Opus 4.5) integrado en VS Code.
+
+### Ejemplos de prompts utilizados
+
+1. **Configuración inicial del proyecto:**
+
+   > "Crea una app Next.js con chat de IA que consulte datos de CoinGecko usando tools del Vercel AI SDK"
+
+2. **Implementación de tools:**
+
+   > "Implementa una tool getCryptoByQuery que busque criptos por nombre o símbolo y maneje casos de ambigüedad"
+
+3. **Persistencia:**
+
+   > "Agrega persistencia del historial de chat usando Upstash Redis con TTL de 7 días"
+
+4. **Manejo de categorías:**
+
+   > "Agrega una tool getCryptosByCategory que obtenga criptos por categoría usando el endpoint de CoinGecko"
+
+5. **Debugging:**
+   > "El modelo Gemini devuelve 'Invalid input' cuando hay tool-results en el historial, ayúdame a debuguear"
+
+### Partes generadas por IA vs. corregidas manualmente
+
+| Componente                              | Generado por IA | Corregido/Ajustado manualmente                                                                       |
+| --------------------------------------- | --------------- | ---------------------------------------------------------------------------------------------------- |
+| Estructura base del proyecto            | ✅              | -                                                                                                    |
+| Componentes UI (Chat, CryptoCard, etc.) | ✅              | Estilos menores                                                                                      |
+| API routes y tools                      | ✅              | -                                                                                                    |
+| **Lógica de `coingecko.ts`**            | ✅ Base         | ✅ **Tiempos de `revalidate`**, **lógica de ambigüedad** (detección de múltiples matches relevantes) |
+| Persistencia Redis                      | ✅              | -                                                                                                    |
+| Manejo de errores de Gemini             | ✅ Workaround   | -                                                                                                    |
+| Tipos TypeScript                        | ✅              | -                                                                                                    |
+
+### Criterio de validación
+
+- **Revisión de lógica de negocio**: Especialmente en `getCryptoByQuery` para asegurar que la detección de ambigüedad funcione correctamente
+- **Testing manual**: Probé casos edge como "binance" (debe mostrar sugerencias), "bnb" (debe devolver BNB directo)
+- **Ajuste de cache**: Modifiqué los tiempos de `revalidate` según el tipo de dato y frecuencia de cambio esperada
+
+---
+
+## 🔒 Verificación contra Alucinaciones
+
+### Problema
+
+El modelo de IA NO debe inventar precios o datos de criptomonedas. Todos los datos financieros deben provenir de CoinGecko.
+
+### Solución técnica implementada
+
+1. **System prompt estricto** (`app/api/chat/route.ts`):
+
+   ```
+   REGLAS IMPORTANTES:
+   1. NUNCA inventes precios o datos de criptomonedas. SIEMPRE usa las tools disponibles.
+   2. Si el usuario pregunta por precios, market cap, o cualquier dato de criptos, DEBES usar una tool.
+   ```
+
+2. **Tools como única fuente de datos**:
+   - La IA no tiene acceso directo a datos de precios
+   - Solo puede obtener datos llamando a las tools (`getTop10Cryptos`, `getCryptoByQuery`, `getCryptosByCategory`)
+   - Las tools consultan la API de CoinGecko en tiempo real
+
+3. **Indicador de fuente en la UI**:
+   - El componente `SourceBadge` muestra "Fuente: CoinGecko" y timestamp
+   - El usuario puede verificar que los datos son reales y cuándo se actualizaron
+
+4. **Validación de datos**:
+   - Los tipos TypeScript (`CryptoData`, `Top10Result`, etc.) garantizan la estructura
+   - Si la API falla, se muestra un error claro, no datos inventados
+
+### Cómo verificar que funciona
+
+```
+Usuario: "¿A cuánto está Bitcoin?"
+```
+
+✅ **Correcto**: La IA llama a `getCryptoByQuery("bitcoin")` → Muestra precio real con badge "CoinGecko"
+
+❌ **Incorrecto** (prevenido): La IA responde "Bitcoin está a $50,000" sin llamar a ninguna tool
+
+---
 
 ## 📝 Licencia
 

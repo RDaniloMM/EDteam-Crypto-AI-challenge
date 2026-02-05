@@ -146,8 +146,8 @@ export async function getCryptoByQuery(query: string): Promise<{
 }> {
   const normalizedQuery = query.toLowerCase().trim();
 
-  // Mapeo de aliases comunes
   const aliases: Record<string, string> = {
+    // Símbolos oficiales
     btc: "bitcoin",
     eth: "ethereum",
     sol: "solana",
@@ -164,6 +164,9 @@ export async function getCryptoByQuery(query: string): Promise<{
     bnb: "binancecoin",
     usdt: "tether",
     usdc: "usd-coin",
+    busd: "binance-usd",
+    shib: "shiba-inu",
+    trx: "tron",
   };
 
   // Intentar con alias primero (muy rápido, una sola llamada)
@@ -193,7 +196,7 @@ export async function getCryptoByQuery(query: string): Promise<{
     (a, b) => (a.market_cap_rank || Infinity) - (b.market_cap_rank || Infinity),
   );
 
-  // Si hay una coincidencia exacta, usarla directamente
+  // Buscar coincidencia exacta por nombre/símbolo/id
   const exactMatch = sortedResults.find(
     (coin) =>
       coin.id.toLowerCase() === normalizedQuery ||
@@ -201,15 +204,48 @@ export async function getCryptoByQuery(query: string): Promise<{
       coin.name.toLowerCase() === normalizedQuery,
   );
 
-  const targetId = exactMatch?.id || sortedResults[0].id;
+  // Si hay coincidencia exacta, usarla
+  if (exactMatch) {
+    const crypto = await getCryptoByIdFast(exactMatch.id);
+    if (crypto) {
+      return { crypto };
+    }
+  }
 
-  // Obtener datos del primer resultado (o coincidencia exacta)
-  const crypto = await getCryptoByIdFast(targetId);
+  // Detectar ambigüedad: si el query es parte de múltiples nombres relevantes
+  // Solo consideramos criptos con market cap rank (las importantes)
+  const relevantMatches = sortedResults.filter((coin) => {
+    const nameMatch = coin.name.toLowerCase().includes(normalizedQuery);
+    const hasRank = coin.market_cap_rank && coin.market_cap_rank <= 500;
+    return nameMatch && hasRank;
+  });
+
+  // Si hay más de una cripto relevante que contiene el término, mostrar sugerencias
+  if (relevantMatches.length > 1) {
+    const topSuggestions = relevantMatches.slice(0, 5).map((coin) => ({
+      id: coin.id,
+      name: coin.name,
+      symbol: coin.symbol.toUpperCase(),
+    }));
+    return { suggestions: topSuggestions };
+  }
+
+  // Si solo hay una relevante, usarla
+  if (relevantMatches.length === 1) {
+    const crypto = await getCryptoByIdFast(relevantMatches[0].id);
+    if (crypto) {
+      return { crypto };
+    }
+  }
+
+  // Si no hay matches relevantes pero sí resultados, usar el primero por market cap
+  const topResult = sortedResults[0];
+  const crypto = await getCryptoByIdFast(topResult.id);
   if (crypto) {
     return { crypto };
   }
 
-  // Si no se encontró, devolver sugerencias
+  // Último recurso: devolver sugerencias
   const topSuggestions = sortedResults.slice(0, 5).map((coin) => ({
     id: coin.id,
     name: coin.name,
