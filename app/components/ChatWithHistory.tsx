@@ -107,7 +107,7 @@ export function ChatWithHistory() {
   };
 
   return (
-    <div className='flex h-screen bg-background'>
+    <div className='flex h-screen bg-muted/30 p-2 md:p-4'>
       {/* Sidebar */}
       <ChatSidebar
         conversations={conversations}
@@ -120,121 +120,127 @@ export function ChatWithHistory() {
         onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
       />
 
-      {/* Main Chat Area */}
-      <main
-        className={`flex-1 flex flex-col h-full overflow-hidden transition-all duration-300 ${isSidebarCollapsed ? "md:pl-14" : ""}`}
+      {/* Main Chat Area - Centered with max width */}
+      <div
+        className={`flex-1 flex justify-center transition-all duration-300 ${isSidebarCollapsed ? "md:pl-14" : "md:pl-8"}`}
       >
-        {/* Search Bar */}
-        <div className='border-b p-3 bg-muted/30'>
-          <div className='max-w-2xl mx-auto pl-12 md:pl-0'>
-            <CryptoAutocomplete
-              onSelect={handleCryptoSelect}
-              placeholder='Buscar criptomoneda por nombre o símbolo...'
-            />
+        <main className='w-full max-w-4xl flex flex-col h-full overflow-hidden rounded-lg bg-background'>
+          {/* Search Bar */}
+          <div className='border-b p-3 bg-muted/30'>
+            <div className='max-w-2xl mx-auto pl-12 md:pl-0'>
+              <CryptoAutocomplete
+                onSelect={handleCryptoSelect}
+                placeholder='Buscar criptomoneda por nombre o símbolo...'
+              />
+            </div>
           </div>
-        </div>
 
-        {/* Messages Area */}
-        <Conversation className='flex-1'>
-          <ConversationContent className='px-4'>
-            {messages.length === 0 ? (
-              <ConversationEmptyState
-                icon={
-                  <Image
-                    src='/logo.png'
-                    alt='Asistente Crypto'
-                    width={64}
-                    height={64}
-                    className='rounded-full'
-                  />
-                }
-                title='Asistente Crypto'
-                description='Pregúntame sobre criptomonedas'
-              >
-                <div className='flex flex-col items-center text-center'>
-                  <Image
-                    src='/logo.png'
-                    alt='Asistente Crypto'
-                    width={64}
-                    height={64}
-                    className='rounded-full mb-4'
-                  />
-                  <div className='space-y-1 mb-6'>
-                    <h3 className='font-semibold text-lg'>Asistente Crypto</h3>
-                    <p className='text-muted-foreground text-sm max-w-md'>
-                      Pregúntame sobre criptomonedas. Puedo mostrarte el top 10
-                      por market cap o darte información detallada de cualquier
-                      cripto.
-                    </p>
+          {/* Messages Area */}
+          <Conversation className='flex-1'>
+            <ConversationContent className='px-4'>
+              {messages.length === 0 ? (
+                <ConversationEmptyState
+                  icon={
+                    <Image
+                      src='/logo.png'
+                      alt='Asistente Crypto'
+                      width={64}
+                      height={64}
+                      className='rounded-full'
+                    />
+                  }
+                  title='Asistente Crypto'
+                  description='Pregúntame sobre criptomonedas'
+                >
+                  <div className='flex flex-col items-center text-center'>
+                    <Image
+                      src='/logo.png'
+                      alt='Asistente Crypto'
+                      width={64}
+                      height={64}
+                      className='rounded-full mb-4'
+                    />
+                    <div className='space-y-1 mb-6'>
+                      <h3 className='font-semibold text-lg'>
+                        Asistente Crypto
+                      </h3>
+                      <p className='text-muted-foreground text-sm max-w-md'>
+                        Pregúntame sobre criptomonedas. Puedo mostrarte el top
+                        10 por market cap o darte información detallada de
+                        cualquier cripto.
+                      </p>
+                    </div>
+                    <Suggestions className='justify-center flex-wrap'>
+                      <Suggestion
+                        suggestion='¿Cuáles son las criptos más valuadas?'
+                        onClick={handleSuggestionClick}
+                      />
+                      <Suggestion
+                        suggestion='¿A cuánto está Bitcoin?'
+                        onClick={handleSuggestionClick}
+                      />
+                      <Suggestion
+                        suggestion='Precio de ETH'
+                        onClick={handleSuggestionClick}
+                      />
+                      <Suggestion
+                        suggestion='Dame info de Solana'
+                        onClick={handleSuggestionClick}
+                      />
+                    </Suggestions>
                   </div>
-                  <Suggestions className='justify-center flex-wrap'>
-                    <Suggestion
-                      suggestion='¿Cuáles son las criptos más valuadas?'
-                      onClick={handleSuggestionClick}
+                </ConversationEmptyState>
+              ) : (
+                <>
+                  {messages.map((message) => (
+                    <ChatMessage
+                      key={message.id}
+                      message={message}
                     />
-                    <Suggestion
-                      suggestion='¿A cuánto está Bitcoin?'
-                      onClick={handleSuggestionClick}
-                    />
-                    <Suggestion
-                      suggestion='Precio de ETH'
-                      onClick={handleSuggestionClick}
-                    />
-                    <Suggestion
-                      suggestion='Dame info de Solana'
-                      onClick={handleSuggestionClick}
-                    />
-                  </Suggestions>
-                </div>
-              </ConversationEmptyState>
-            ) : (
-              <>
-                {messages.map((message) => (
-                  <ChatMessage
-                    key={message.id}
-                    message={message}
-                  />
-                ))}
+                  ))}
 
-                {isLoading && (
-                  <div className='space-y-2'>
-                    <SkeletonLine className='h-4 w-3/4' />
-                    <SkeletonLine className='h-4 w-1/2' />
-                  </div>
-                )}
+                  {isLoading && (
+                    <div className='space-y-2'>
+                      <SkeletonLine className='h-4 w-3/4' />
+                      <SkeletonLine className='h-4 w-1/2' />
+                    </div>
+                  )}
 
-                {error && (
-                  <Alert variant='destructive'>
-                    <AlertDescription>Error: {error.message}</AlertDescription>
-                  </Alert>
-                )}
+                  {error && (
+                    <Alert variant='destructive'>
+                      <AlertDescription>
+                        Error: {error.message}
+                      </AlertDescription>
+                    </Alert>
+                  )}
 
-                <div ref={messagesEndRef} />
-              </>
-            )}
-          </ConversationContent>
-          <ConversationScrollButton />
-        </Conversation>
+                  <div ref={messagesEndRef} />
+                </>
+              )}
+            </ConversationContent>
+            <ConversationScrollButton />
+          </Conversation>
 
-        {/* Input */}
-        <div className='border-t p-4 bg-background'>
-          <PromptInput
-            onSubmit={({ text }) => {
-              sendMessage({ text });
-              setInput("");
-            }}
-            className='max-w-3xl mx-auto'
-          >
-            <PromptInputTextarea
-              placeholder='Pregunta sobre criptomonedas...'
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              disabled={isLoading}
-            />
-            <PromptInputSubmit disabled={isLoading || !input.trim()} />
-          </PromptInput>
-        </div>
-      </main>
+          {/* Input */}
+          <div className='border-t p-4 bg-background'>
+            <PromptInput
+              onSubmit={({ text }) => {
+                sendMessage({ text });
+                setInput("");
+              }}
+              className='max-w-3xl mx-auto'
+            >
+              <PromptInputTextarea
+                placeholder='Pregunta sobre criptomonedas...'
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                disabled={isLoading}
+              />
+              <PromptInputSubmit disabled={isLoading || !input.trim()} />
+            </PromptInput>
+          </div>
+        </main>
+      </div>
     </div>
   );
 }
