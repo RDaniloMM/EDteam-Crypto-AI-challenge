@@ -60,7 +60,7 @@ export async function getTop10Cryptos(): Promise<CryptoData[]> {
   });
 
   const response = await fetch(url, {
-    cache: "no-store", // Sin cache para datos en tiempo real
+    next: { revalidate: 10 },
   });
 
   if (!response.ok) {
@@ -86,7 +86,7 @@ export async function getCryptoByIdFast(
   });
 
   const response = await fetch(url, {
-    cache: "no-store",
+    next: { revalidate: 10 },
   });
 
   if (!response.ok) {
@@ -110,7 +110,7 @@ export async function searchCrypto(
   const url = buildUrl("/search", { query });
 
   const response = await fetch(url, {
-    cache: "no-store",
+    next: { revalidate: 60 }, // Busquedas cacheadas por 1 minuto
   });
 
   if (!response.ok) {
