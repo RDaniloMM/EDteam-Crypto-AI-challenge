@@ -2,6 +2,7 @@ import type {
   CryptoMarketData,
   CryptoData,
   CoinGeckoSearchResult,
+  CoinGeckoCategory,
 } from "@/app/types/crypto";
 
 const COINGECKO_BASE_URL =
@@ -216,4 +217,147 @@ export async function getCryptoByQuery(query: string): Promise<{
   }));
 
   return { suggestions: topSuggestions };
+}
+
+/**
+ * Obtiene la lista de categorías disponibles en CoinGecko
+ */
+export async function getCategories(): Promise<CoinGeckoCategory[]> {
+  const url = buildUrl("/coins/categories/list");
+
+  const response = await fetch(url, {
+    next: { revalidate: 300 }, // Cache por 5 minutos
+  });
+
+  if (!response.ok) {
+    throw new Error(
+      `Coingecko API error: ${response.status} ${response.statusText}`,
+    );
+  }
+
+  return response.json();
+}
+
+/**
+ * Mapeo de nombres comunes de categorías a IDs de CoinGecko
+ */
+const categoryAliases: Record<string, string> = {
+  "layer 1": "layer-1",
+  "layer-1": "layer-1",
+  l1: "layer-1",
+  "layer 2": "layer-2",
+  "layer-2": "layer-2",
+  l2: "layer-2",
+  defi: "decentralized-finance-defi",
+  nft: "non-fungible-tokens-nft",
+  nfts: "non-fungible-tokens-nft",
+  meme: "meme-token",
+  memes: "meme-token",
+  memecoin: "meme-token",
+  memecoins: "meme-token",
+  gaming: "gaming",
+  metaverse: "metaverse",
+  ai: "artificial-intelligence",
+  "inteligencia artificial": "artificial-intelligence",
+  stablecoin: "stablecoins",
+  stablecoins: "stablecoins",
+  exchange: "exchange-based-tokens",
+  dex: "decentralized-exchange",
+  privacy: "privacy-coins",
+  oracle: "oracle",
+  storage: "storage",
+  "smart contract": "smart-contract-platform",
+  "smart contracts": "smart-contract-platform",
+};
+
+/**
+ * Obtiene criptomonedas de una categoría específica
+ */
+export async function getCryptosByCategory(
+  category: string,
+  limit: number = 10,
+): Promise<{
+  cryptos?: CryptoData[];
+  categoryName?: string;
+  notFound?: boolean;
+  suggestions?: string[];
+}> {
+  const normalizedCategory = category.toLowerCase().trim();
+
+  // Intentar con alias primero
+  let categoryId = categoryAliases[normalizedCategory] || normalizedCategory;
+
+  // Obtener lista de categorías para validar
+  const categories = await getCategories();
+
+  // Buscar coincidencia exacta o parcial
+  let matchedCategory = categories.find(
+    (cat) =>
+      cat.category_id === categoryId ||
+      cat.name.toLowerCase() === normalizedCategory,
+  );
+
+  // Si no hay coincidencia exacta, buscar parcial
+  if (!matchedCategory) {
+    matchedCategory = categories.find(
+      (cat) =>
+        cat.category_id.includes(normalizedCategory) ||
+        cat.name.toLowerCase().includes(normalizedCategory),
+    );
+  }
+
+  if (!matchedCategory) {
+    // Devolver sugerencias de categorías similares
+    const suggestions = categories
+      .filter(
+        (cat) =>
+          cat.name.toLowerCase().includes(normalizedCategory.substring(0, 3)) ||
+          cat.category_id.includes(normalizedCategory.substring(0, 3)),
+      )
+      .slice(0, 5)
+      .map((cat) => cat.name);
+
+    return {
+      notFound: true,
+      suggestions:
+        suggestions.length > 0
+          ? suggestions
+          : ["DeFi", "Layer 1", "Meme", "Gaming", "AI"],
+    };
+  }
+
+  categoryId = matchedCategory.category_id;
+
+  // Obtener criptos de la categoría
+  const url = buildUrl("/coins/markets", {
+    vs_currency: "usd",
+    category: categoryId,
+    order: "market_cap_desc",
+    per_page: String(limit),
+    page: "1",
+    sparkline: "false",
+  });
+
+  const response = await fetch(url, {
+    next: { revalidate: 30 }, // Cache por 30 segundos
+  });
+
+  if (!response.ok) {
+    throw new Error(
+      `Coingecko API error: ${response.status} ${response.statusText}`,
+    );
+  }
+
+  const data: CryptoMarketData[] = await response.json();
+
+  if (data.length === 0) {
+    return { notFound: true };
+  }
+
+  const cryptos = data.map((item) => ({
+    ...normalizeMarketData(item),
+    categories: [matchedCategory!.name],
+  }));
+
+  return { cryptos, categoryName: matchedCategory.name };
 }

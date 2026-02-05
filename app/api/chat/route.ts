@@ -1,7 +1,11 @@
 import { createOpenAI } from "@ai-sdk/openai";
 import { streamText, UIMessage, tool, convertToModelMessages } from "ai";
 import { z } from "zod";
-import { getTop10Cryptos, getCryptoByQuery } from "@/app/lib/coingecko";
+import {
+  getTop10Cryptos,
+  getCryptoByQuery,
+  getCryptosByCategory,
+} from "@/app/lib/coingecko";
 
 // Crear cliente OpenAI apuntando al Vercel AI Gateway
 const openai = createOpenAI({
@@ -72,9 +76,10 @@ REGLAS IMPORTANTES:
 2. Si el usuario pregunta por precios, market cap, o cualquier dato de criptos, DEBES usar una tool.
 3. Si el usuario pregunta por el top 10, las más valiosas, o criptos más importantes, usa getTop10Cryptos.
 4. Si el usuario pregunta por una cripto específica (bitcoin, eth, solana, etc.), usa getCryptoByQuery.
-5. Puedes responder preguntas generales sobre criptomonedas sin usar tools (conceptos, qué es blockchain, etc.)
-6. Siempre indica que los datos provienen de Coingecko cuando muestres precios.
-7. Sé conciso en tus respuestas.`,
+5. Si el usuario pregunta por criptos de una categoría (memes, defi, layer 1, gaming, AI, etc.), usa getCryptosByCategory.
+6. Puedes responder preguntas generales sobre criptomonedas sin usar tools (conceptos, qué es blockchain, etc.)
+7. Siempre indica que los datos provienen de Coingecko cuando muestres precios.
+8. Sé conciso en tus respuestas.`,
     messages: finalMessages,
     tools: {
       getTop10Cryptos: tool({
@@ -138,6 +143,57 @@ REGLAS IMPORTANTES:
             return {
               success: true,
               data: result.crypto,
+              source: "coingecko" as const,
+              timestamp: new Date().toISOString(),
+            };
+          } catch (error) {
+            return {
+              success: false,
+              error:
+                error instanceof Error ? error.message : "Error desconocido",
+              source: "coingecko" as const,
+              timestamp: new Date().toISOString(),
+            };
+          }
+        },
+      }),
+      getCryptosByCategory: tool({
+        description:
+          "Obtiene las criptomonedas más importantes de una categoría específica. Categorías populares: meme (memecoins), defi, layer-1, layer-2, gaming, metaverse, ai (inteligencia artificial), nft, stablecoins, privacy, oracle, smart-contract.",
+        inputSchema: z.object({
+          category: z
+            .string()
+            .describe(
+              'Nombre de la categoría. Ej: "meme", "defi", "layer-1", "gaming", "ai".',
+            ),
+          limit: z
+            .number()
+            .optional()
+            .describe(
+              "Número de criptos a devolver (por defecto 10, máximo 20).",
+            ),
+        }),
+        execute: async ({ category, limit }) => {
+          try {
+            const result = await getCryptosByCategory(
+              category,
+              Math.min(limit || 10, 20),
+            );
+
+            if (result.notFound) {
+              return {
+                success: false,
+                error: `No encontré la categoría "${category}".`,
+                suggestions: result.suggestions,
+                source: "coingecko" as const,
+                timestamp: new Date().toISOString(),
+              };
+            }
+
+            return {
+              success: true,
+              data: result.cryptos,
+              category: result.categoryName,
               source: "coingecko" as const,
               timestamp: new Date().toISOString(),
             };

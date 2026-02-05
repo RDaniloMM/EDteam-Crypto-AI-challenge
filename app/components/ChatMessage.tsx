@@ -15,6 +15,7 @@ import type {
   CryptoData,
   Top10Result,
   CryptoQueryResult,
+  CryptosByCategoryResult,
 } from "@/app/types/crypto";
 
 function SkeletonLine({ className }: { className?: string }) {
@@ -31,7 +32,7 @@ interface ToolPart {
   toolCallId: string;
   state: "input-streaming" | "output-available";
   input?: Record<string, unknown>;
-  output?: Top10Result | CryptoQueryResult;
+  output?: Top10Result | CryptoQueryResult | CryptosByCategoryResult;
 }
 
 export function ChatMessage({ message }: ChatMessageProps) {
@@ -70,6 +71,47 @@ export function ChatMessage({ message }: ChatMessageProps) {
                 <ToolContent>
                   {toolPart.output ? (
                     renderToolResult("getTop10Cryptos", toolPart.output)
+                  ) : (
+                    <div className='p-4 space-y-2'>
+                      <SkeletonLine className='h-4 w-3/4' />
+                      <SkeletonLine className='h-4 w-1/2' />
+                      <SkeletonLine className='h-4 w-2/3' />
+                    </div>
+                  )}
+                </ToolContent>
+              </Tool>
+            );
+          }
+
+          // Tool getCryptosByCategory (formato: tool-getCryptosByCategory)
+          if (part.type === "tool-getCryptosByCategory") {
+            const toolPart = part as unknown as ToolPart;
+            const category =
+              (toolPart.input?.category as string) || "categoría";
+            const categoryName = (toolPart.output as CryptosByCategoryResult)
+              ?.category;
+
+            return (
+              <Tool
+                key={index}
+                defaultOpen
+              >
+                <ToolHeader
+                  title={
+                    categoryName
+                      ? `Categoría: ${categoryName}`
+                      : `Buscando: ${category}`
+                  }
+                  type='tool-getCryptosByCategory'
+                  state={
+                    toolPart.state === "output-available"
+                      ? "output-available"
+                      : "input-streaming"
+                  }
+                />
+                <ToolContent>
+                  {toolPart.output ? (
+                    renderToolResult("getCryptosByCategory", toolPart.output)
                   ) : (
                     <div className='p-4 space-y-2'>
                       <SkeletonLine className='h-4 w-3/4' />
@@ -129,7 +171,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
 
 function renderToolResult(
   toolName: string,
-  result: Top10Result | CryptoQueryResult,
+  result: Top10Result | CryptoQueryResult | CryptosByCategoryResult,
 ) {
   if (!result.success) {
     // Mostrar sugerencias si las hay
@@ -194,6 +236,23 @@ function renderToolResult(
     return (
       <div className='space-y-2'>
         <CryptoCard crypto={result.data as CryptoData} />
+        <SourceBadge
+          source={result.source}
+          timestamp={result.timestamp}
+        />
+      </div>
+    );
+  }
+
+  // Cryptos by category
+  if (
+    toolName === "getCryptosByCategory" &&
+    "data" in result &&
+    Array.isArray(result.data)
+  ) {
+    return (
+      <div className='space-y-2'>
+        <CryptoTable cryptos={result.data as CryptoData[]} />
         <SourceBadge
           source={result.source}
           timestamp={result.timestamp}

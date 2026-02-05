@@ -28,6 +28,7 @@ export interface CryptoData {
   marketCapRank: number;
   priceChange24h: number;
   lastUpdated: string;
+  categories?: string[];
 }
 
 /**
@@ -42,6 +43,14 @@ export interface CoinGeckoSearchResult {
     thumb: string;
     large: string;
   }[];
+}
+
+/**
+ * Categoría de CoinGecko del endpoint /coins/categories/list
+ */
+export interface CoinGeckoCategory {
+  category_id: string;
+  name: string;
 }
 
 /**
@@ -87,6 +96,18 @@ export interface CryptoQueryResult {
   success: boolean;
   data?: CryptoData;
   suggestions?: { id: string; name: string; symbol: string }[];
+  error?: string;
+  source: "coingecko";
+  timestamp: string;
+}
+
+/**
+ * Resultado de la tool getCryptosByCategory
+ */
+export interface CryptosByCategoryResult {
+  success: boolean;
+  data?: CryptoData[];
+  category?: string;
   error?: string;
   source: "coingecko";
   timestamp: string;
