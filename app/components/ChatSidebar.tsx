@@ -188,18 +188,6 @@ export function ChatSidebar({
         {isOpen ? <X className='w-5 h-5' /> : <Menu className='w-5 h-5' />}
       </button>
 
-      {/* Desktop Toggle Button - cuando está colapsado */}
-      {isCollapsed && (
-        <button
-          onClick={onToggleCollapse}
-          className='hidden md:flex fixed top-4 left-4 z-50 p-2 bg-background border border-border rounded-lg shadow-lg hover:bg-muted transition-colors'
-          aria-label='Mostrar menú'
-          title='Mostrar menú'
-        >
-          <PanelLeft className='w-5 h-5' />
-        </button>
-      )}
-
       {/* Mobile Overlay */}
       {isOpen && (
         <div
@@ -212,14 +200,48 @@ export function ChatSidebar({
       <aside
         className={`
           fixed md:relative inset-y-0 left-0 z-40
-          w-64 bg-background border-r border-border
+          bg-background border-r border-border
           flex flex-col h-full overflow-hidden
           transition-all duration-300 ease-in-out
-          ${isOpen ? "translate-x-0" : "-translate-x-full"}
-          ${isCollapsed ? "md:-translate-x-full md:w-0 md:border-0 md:opacity-0" : "md:translate-x-0 md:opacity-100"}
+          ${isOpen ? "translate-x-0 w-64" : "-translate-x-full md:translate-x-0"}
+          ${isCollapsed ? "md:w-14" : "md:w-64"}
         `}
       >
-        {sidebarContent}
+        {/* Vista colapsada (solo desktop) */}
+        <div
+          className={`
+            hidden md:flex flex-col h-full items-center py-4 gap-2 transition-opacity duration-300
+            ${isCollapsed ? "opacity-100 visible" : "opacity-0 invisible absolute top-0 left-0"}
+          `}
+        >
+          <button
+            onClick={onToggleCollapse}
+            className='p-2 hover:bg-muted rounded-md transition-colors'
+            title='Expandir sidebar'
+          >
+            <PanelLeft className='w-4 h-4 text-muted-foreground' />
+          </button>
+
+          <button
+            onClick={() => {
+              onNewChat();
+            }}
+            className='p-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors'
+            title='Nuevo chat'
+          >
+            <MessageSquarePlus className='w-4 h-4' />
+          </button>
+        </div>
+
+        {/* Vista expandida (mobile y desktop) */}
+        <div
+          className={`
+            flex flex-col h-full w-full transition-opacity duration-300
+            ${isCollapsed ? "md:opacity-0 md:invisible md:absolute md:top-0 md:left-0" : "md:opacity-100 md:visible"}
+          `}
+        >
+          {sidebarContent}
+        </div>
       </aside>
     </>
   );
