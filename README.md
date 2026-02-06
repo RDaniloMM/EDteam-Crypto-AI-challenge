@@ -290,17 +290,6 @@ El modelo de IA NO debe inventar precios o datos de criptomonedas. Todos los dat
    - Los tipos TypeScript (`CryptoData`, `Top10Result`, etc.) garantizan la estructura
    - Si la API falla, se muestra un error claro, no datos inventados
 
-### Cómo verificar que funciona
-
-```
-Usuario: "¿A cuánto está Bitcoin?"
-```
-
-✅ **Correcto**: La IA llama a `getCryptoByQuery("bitcoin")` → Muestra precio real con badge "CoinGecko"
-
-❌ **Incorrecto** (prevenido): La IA responde "Bitcoin está a $50,000" sin llamar a ninguna tool
-
----
 
 ## 📝 Licencia
 

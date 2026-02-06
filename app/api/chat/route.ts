@@ -1,4 +1,4 @@
-import { createOpenAI } from "@ai-sdk/openai";
+import { createGroq } from "@ai-sdk/groq";
 import { streamText, UIMessage, tool, convertToModelMessages } from "ai";
 import { z } from "zod";
 import {
@@ -7,9 +7,8 @@ import {
   getCryptosByCategory,
 } from "@/app/lib/coingecko";
 
-const openai = createOpenAI({
-  apiKey: process.env.AI_GATEWAY_API_KEY,
-  baseURL: "https://ai-gateway.vercel.sh/v1",
+const groq = createGroq({
+  apiKey: process.env.GROQ_API_KEY,
 });
 
 // duracion maxima de 30 segundos de streaming
@@ -21,53 +20,8 @@ export async function POST(req: Request) {
   // Convertir mensajes
   const convertedMessages = await convertToModelMessages(messages);
 
-  // Detectar si hay tool-results en el historial (causan problemas con Gemini via gateway)
-  const hasToolResults = convertedMessages.some((msg) => msg.role === "tool");
-
-  let finalMessages: typeof convertedMessages;
-
-  if (hasToolResults) {
-    // Si hay tools en el historial, solo enviar el último mensaje del usuario
-    // para evitar incompatibilidades con el formato de tool-results
-    const lastUserMsg = [...convertedMessages]
-      .reverse()
-      .find((m) => m.role === "user");
-    finalMessages = lastUserMsg ? [lastUserMsg] : convertedMessages;
-  } else {
-    // Sin tools, fusionar users consecutivos si los hay
-    finalMessages = [];
-    for (const msg of convertedMessages) {
-      const lastAdded = finalMessages[finalMessages.length - 1];
-
-      if (msg.role === "user" && lastAdded?.role === "user") {
-        const getTexts = (content: unknown): string[] => {
-          if (Array.isArray(content)) {
-            return content
-              .filter(
-                (c): c is { type: "text"; text: string } =>
-                  typeof c === "object" &&
-                  c !== null &&
-                  (c as Record<string, unknown>).type === "text",
-              )
-              .map((c) => c.text);
-          }
-          return [String(content)];
-        };
-
-        const combinedText = [
-          ...getTexts(lastAdded.content),
-          ...getTexts(msg.content),
-        ].join("\n\n");
-        lastAdded.content = [{ type: "text" as const, text: combinedText }];
-        continue;
-      }
-
-      finalMessages.push(msg);
-    }
-  }
-
   const result = streamText({
-    model: openai("google/gemini-3-flash-preview"),
+    model: groq("llama-3.3-70b-versatile"),
     system: `Eres un asistente experto en criptomonedas. Tu trabajo es ayudar a los usuarios a obtener información sobre criptomonedas usando datos reales de Coingecko.
 
   REGLAS IMPORTANTES:
@@ -78,8 +32,9 @@ export async function POST(req: Request) {
   5. Si el usuario pregunta por criptos de una categoría (memes, defi, layer 1, gaming, AI, etc.), usa getCryptosByCategory.
   6. Puedes responder preguntas generales sobre criptomonedas sin usar tools (conceptos, qué es blockchain, etc.)
   7. Siempre indica que los datos provienen de Coingecko cuando muestres precios.
-  8. Sé conciso en tus respuestas.`,
-    messages: finalMessages,
+  8. No menciones que eres una IA o modelo de lenguaje, mantente en tu rol de asistente de información sobre criptomonedas, y sé conciso con tus respuestas.  
+  `,
+    messages: convertedMessages,
     tools: {
       getTop10Cryptos: tool({
         description:
